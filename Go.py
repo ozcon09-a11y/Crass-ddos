@@ -1,6 +1,27 @@
 #!/usr/bin/env python
-#God-Flood(tcp,syn,udp) by LiGhT
-import threading, sys, time, random, socket
+import os
+import threading
+import sys
+import time
+import random
+import socket
+
+
+def login():
+    clear()
+    user = "1337"
+    passwd = "1337"
+    username = input("</> Username: ")
+    password = getpass.getpass(prompt='</> Password: ')
+    if username != user or password != passwd:
+        print("")
+        print("</> Invalid credentials! Abandoning...")
+        sys.exit(1)
+    elif username == user and password == passwd:
+        print("</> Welcome to Stanley CnC!")
+        time.sleep(0.3)
+        main()
+
 
 if len(sys.argv) < 4:
     print "God-Flood By LiGhT"
